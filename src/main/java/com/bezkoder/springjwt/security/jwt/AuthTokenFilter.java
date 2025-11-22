@@ -2,6 +2,7 @@ package com.bezkoder.springjwt.security.jwt;
 
 import java.io.IOException;
 
+import com.bezkoder.springjwt.security.services.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,22 +29,34 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
+  @Autowired
+  private TokenBlacklistService tokenBlacklistService;
+
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-      throws ServletException, IOException {
+          throws ServletException, IOException {
+
     try {
       String jwt = parseJwt(request);
       if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+
+        // بررسی در لیست سیاه
+        if (tokenBlacklistService.isBlacklisted(jwt)) {
+          logger.warn("Blacklisted JWT token attempted to use");
+          response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+          return;
+        }
+
         String username = jwtUtils.getUserNameFromJwtToken(jwt);
-
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities());
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
+
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
       }
     } catch (Exception e) {
