@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: auth_postgres
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - auth-net
+
+  auth-service:
+    image: auth-service
+    container_name: auth_api
+    depends_on:
+      - postgres
+    ports:
+      - "8090:8090"
+      - "5005:5005"     # ← پورت Debug اینجاست
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: auth_pass
+    networks:
+      - auth-net
+
+networks:
+  auth-net:
+
+volumes:
+  auth_pgdata:
