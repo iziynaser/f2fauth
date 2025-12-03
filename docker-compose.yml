@@ -24,8 +24,9 @@ services:
       - postgres
     ports:
       - "8090:8090"
-      - "5005:5005"     # ← پورت Debug اینجاست
+      - "5007:5007"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
       SPRING_DATASOURCE_USERNAME: auth_user
       SPRING_DATASOURCE_PASSWORD: auth_pass
